@@ -55,6 +55,13 @@ func (handler *LinkHandler) Delete() http.HandlerFunc {
 }
 func (handler *LinkHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-
+		hash := req.PathValue("hash")
+		link, err := handler.LinkRepository.Get(hash)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusNotFound)
+			return
+		}
+		fmt.Println(link.Url)
+		http.Redirect(w, req, link.Url, http.StatusTemporaryRedirect)
 	}
 }
