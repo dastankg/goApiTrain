@@ -23,4 +23,6 @@ go.work.sum
 
 # env file
 .env
+
+# Ignore the data directory
 ./data:/var/lib/postgresql/data
