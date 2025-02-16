@@ -12,10 +12,12 @@ type Link struct {
 }
 
 func NewLink(url string) *Link {
-	return &Link{
+	ans := &Link{
 		Url:  url,
 		Hash: RandStringRunes(6),
 	}
+	return ans
+
 }
 
 func RandStringRunes(n int) string {

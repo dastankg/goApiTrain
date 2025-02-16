@@ -28,3 +28,19 @@ func (repo *LinkRepository) Get(hash string) (*Link, error) {
 	}
 	return link, nil
 }
+
+func (repo *LinkRepository) Update(link *Link) (*Link, error) {
+	res := repo.Database.DB.Updates(link)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return link, nil
+}
+
+func (repo *LinkRepository) Delete(id uint) error {
+	res := repo.Database.DB.Where("id = ?", id).Delete(&Link{})
+	if res.Error != nil {
+		return res.Error
+	}
+	return nil
+}
