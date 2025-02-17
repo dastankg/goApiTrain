@@ -1,6 +1,7 @@
 package link
 
 import (
+	"apiProject/pkg/middleware"
 	"apiProject/pkg/req"
 	"apiProject/pkg/response"
 	"fmt"
@@ -21,7 +22,7 @@ func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 		LinkRepository: deps.LinkRepository,
 	}
 	router.HandleFunc("POST /link", handler.Create())
-	router.HandleFunc("PATCH /link/{id}", handler.Update())
+	router.Handle("PATCH /link/{id}", middleware.IsAuth(handler.Update()))
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
 	router.HandleFunc("GET /{hash}", handler.Get())
 }
@@ -35,7 +36,7 @@ func (handler *LinkHandler) Create() http.HandlerFunc {
 		}
 		link := NewLink(body.Url)
 		for {
-			exist, _ := handler.LinkRepository.Get(link.Hash)
+			exist, _ := handler.LinkRepository.GetByHash(link.Hash)
 			if exist == nil {
 				break
 			}
@@ -85,6 +86,11 @@ func (handler *LinkHandler) Delete() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		exist, _ := handler.LinkRepository.GetById(uint(id))
+		if exist == nil {
+			http.Error(w, "Not found", http.StatusNotFound)
+			return
+		}
 		err = handler.LinkRepository.Delete(uint(id))
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotFound)
@@ -96,7 +102,7 @@ func (handler *LinkHandler) Delete() http.HandlerFunc {
 func (handler *LinkHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		hash := req.PathValue("hash")
-		link, err := handler.LinkRepository.Get(hash)
+		link, err := handler.LinkRepository.GetByHash(hash)
 		if err != nil {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return

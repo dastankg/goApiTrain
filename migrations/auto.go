@@ -2,6 +2,7 @@ package main
 
 import (
 	"apiProject/internal/link"
+	"apiProject/internal/user"
 	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -18,4 +19,5 @@ func main() {
 		panic(err)
 	}
 	db.AutoMigrate(&link.Link{})
+	db.AutoMigrate(&user.User{})
 }

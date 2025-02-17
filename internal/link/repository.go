@@ -20,9 +20,17 @@ func (repo *LinkRepository) Create(link *Link) (*Link, error) {
 	return link, nil
 }
 
-func (repo *LinkRepository) Get(hash string) (*Link, error) {
+func (repo *LinkRepository) GetByHash(hash string) (*Link, error) {
 	link := &Link{}
 	res := repo.Database.DB.Where("hash = ?", hash).First(link)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return link, nil
+}
+func (repo *LinkRepository) GetById(id uint) (*Link, error) {
+	link := &Link{}
+	res := repo.Database.DB.Where("id = ?", id).First(link)
 	if res.Error != nil {
 		return nil, res.Error
 	}
