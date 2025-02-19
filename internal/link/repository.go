@@ -1,6 +1,8 @@
 package link
 
-import "apiProject/pkg/db"
+import (
+	"apiProject/pkg/db"
+)
 
 type LinkRepository struct {
 	Database *db.Db
@@ -49,6 +51,21 @@ func (repo *LinkRepository) Delete(id uint) error {
 	res := repo.Database.DB.Where("id = ?", id).Delete(&Link{})
 	if res.Error != nil {
 		return res.Error
+		return res.Error
 	}
 	return nil
+}
+
+func (repo *LinkRepository) GetLinks(limit, offset int) []Link {
+	links := []Link{}
+
+	repo.Database.Table("links").
+		Where("deleted_at is null").Limit(limit).Offset(offset).Scan(&links)
+	return links
+}
+
+func (repo *LinkRepository) Count() int64 {
+	var count int64
+	repo.Database.Table("links").Where("deleted_at is null").Count(&count)
+	return count
 }

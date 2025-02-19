@@ -1,6 +1,7 @@
 package link
 
 import (
+	"apiProject/configs"
 	"apiProject/pkg/middleware"
 	"apiProject/pkg/req"
 	"apiProject/pkg/response"
@@ -15,6 +16,7 @@ type LinkHandler struct {
 }
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
+	Config         *configs.Config
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
@@ -22,9 +24,10 @@ func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 		LinkRepository: deps.LinkRepository,
 	}
 	router.HandleFunc("POST /link", handler.Create())
-	router.Handle("PATCH /link/{id}", middleware.IsAuth(handler.Update()))
+	router.Handle("PATCH /link/{id}", middleware.IsAuth(handler.Update(), deps.Config))
 	router.HandleFunc("DELETE /link/{id}", handler.Delete())
 	router.HandleFunc("GET /{hash}", handler.Get())
+	router.HandleFunc("GET /link", handler.GetAll())
 }
 
 func (handler *LinkHandler) Create() http.HandlerFunc {
@@ -54,6 +57,11 @@ func (handler *LinkHandler) Create() http.HandlerFunc {
 
 func (handler *LinkHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+
+		email, ok := r.Context().Value(middleware.ContextEMailKey).(string)
+		if ok {
+			fmt.Println(email)
+		}
 		body, err := req.HandleBody[LinkUpdateRequest](&w, r)
 		if err != nil {
 			response.NewResponse(w, err.Error(), 402)
@@ -65,6 +73,7 @@ func (handler *LinkHandler) Update() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+
 		link, err := handler.LinkRepository.Update(&Link{
 			Model: gorm.Model{ID: uint(id)},
 			Url:   body.Url,
@@ -109,5 +118,32 @@ func (handler *LinkHandler) Get() http.HandlerFunc {
 		}
 		fmt.Println(link.Url)
 		http.Redirect(w, req, link.Url, http.StatusTemporaryRedirect)
+	}
+}
+
+func (handler *LinkHandler) GetAll() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		a, err := strconv.Atoi(req.URL.Query().Get("limit"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		b, err := strconv.Atoi(req.URL.Query().Get("offset"))
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		link := handler.LinkRepository.GetLinks(a, b)
+		count := handler.LinkRepository.Count()
+
+		res := GetAllLinksResponse{
+			Links: link,
+			Count: count,
+		}
+
+		response.NewResponse(w, res, 200)
+
 	}
 }

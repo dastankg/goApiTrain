@@ -2,6 +2,7 @@ package auth
 
 import (
 	"apiProject/configs"
+	"apiProject/pkg/jwt"
 	request_ "apiProject/pkg/req"
 	"apiProject/pkg/response"
 	"net/http"
@@ -27,13 +28,25 @@ func NewAuthHandler(router *http.ServeMux, deps AuthHandlerDeps) {
 
 func (handler *AuthHandler) Auth() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		_, err := request_.HandleBody[LoginRequest](&w, req)
+		body, err := request_.HandleBody[LoginRequest](&w, req)
+		if err != nil {
+			response.NewResponse(w, err.Error(), 402)
+			return
+		}
+		email, err := handler.AuthService.Login(body.Email, body.Password)
+		if err != nil {
+			response.NewResponse(w, err.Error(), 402)
+			return
+		}
+		token, err := jwt.NewJWT(handler.Config.Auth.Secret).Create(jwt.JWTData{
+			Email: email,
+		})
 		if err != nil {
 			response.NewResponse(w, err.Error(), 402)
 			return
 		}
 		res := LoginResponse{
-			Token: "123",
+			Token: token,
 		}
 		response.NewResponse(w, res, 201)
 
@@ -48,7 +61,22 @@ func (handler *AuthHandler) Register() http.HandlerFunc {
 			return
 		}
 
-		handler.AuthService.Register(body.Name, body.Email, body.Password)
+		email, err := handler.AuthService.Register(body.Name, body.Email, body.Password)
+		if err != nil {
+			response.NewResponse(w, err.Error(), 402)
+			return
+		}
+		token, err := jwt.NewJWT(handler.Config.Auth.Secret).Create(jwt.JWTData{
+			Email: email,
+		})
+		if err != nil {
+			response.NewResponse(w, err.Error(), 402)
+			return
+		}
+		res := RegisterResponse{
+			Token: token,
+		}
+		response.NewResponse(w, res, 201)
 
 	}
 }
