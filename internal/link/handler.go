@@ -2,6 +2,7 @@ package link
 
 import (
 	"apiProject/configs"
+	"apiProject/pkg/event"
 	"apiProject/pkg/middleware"
 	"apiProject/pkg/req"
 	"apiProject/pkg/response"
@@ -13,15 +14,18 @@ import (
 
 type LinkHandler struct {
 	LinkRepository *LinkRepository
+	EventBus       *event.EventBus
 }
 type LinkHandlerDeps struct {
 	LinkRepository *LinkRepository
 	Config         *configs.Config
+	EventBus       *event.EventBus
 }
 
 func NewLinkHandler(router *http.ServeMux, deps LinkHandlerDeps) {
 	handler := &LinkHandler{
 		LinkRepository: deps.LinkRepository,
+		EventBus:       deps.EventBus,
 	}
 	router.HandleFunc("POST /link", handler.Create())
 	router.Handle("PATCH /link/{id}", middleware.IsAuth(handler.Update(), deps.Config))
@@ -116,7 +120,10 @@ func (handler *LinkHandler) Get() http.HandlerFunc {
 			http.Error(w, err.Error(), http.StatusNotFound)
 			return
 		}
-		fmt.Println(link.Url)
+		go handler.EventBus.Publish(event.Event{
+			Type: event.LinkVisitEvent,
+			Data: link.ID,
+		})
 		http.Redirect(w, req, link.Url, http.StatusTemporaryRedirect)
 	}
 }
